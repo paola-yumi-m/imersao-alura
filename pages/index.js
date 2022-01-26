@@ -1,34 +1,7 @@
 import { Box, Button, Text, TextField, Image } from '@skynexui/components';
+import React from 'react';
+import { useRouter } from 'next/router'
 import appConfig from '../config.json';
-
-function GlobalStyle() {
-  return (
-    <style global jsx>{`
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        list-style: none;
-      }
-      body {
-        font-family: 'Century Gothic', sans-serif;
-      }
-      /* App fit Height */ 
-      html, body, #__next {
-        min-height: 100vh;
-        display: flex;
-        flex: 1;
-      }
-      #__next {
-        flex: 1;
-      }
-      #__next > * {
-        flex: 1;
-      }
-      /* ./App fit Height */ 
-    `}</style>
-  );
-}
 
 function Title(props) {
   const Tag = props.tag || 'h1';
@@ -47,16 +20,37 @@ function Title(props) {
 }
 
 export default function PaginaInicial() {
-  const username = 'paola-yumi-m';
+  const [username, setUsername] = React.useState(''); 
+  const showData = function (username, location) {
+    if (username.length > 2) {
+      return [username, location];
+    } else {
+      return ['-', '-'];
+    }
+  }
+  const router = useRouter();
+  const [location, setLocation] = React.useState(''); 
+  async function getLocation(username) {
+    const url = `https://api.github.com/users/${username}` 
+    try {
+      const response = await fetch(url, {method: 'GET'});
+      if (response.ok) {
+        const jsonResponse = await response.json();
+        setLocation(jsonResponse.location);
+      } 
+    }
+    catch(error) {
+      return '-';
+    }
+  }
 
   return (
     <>
-      <GlobalStyle />
       <Box
         styleSheet={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           backgroundColor: appConfig.theme.colors.personalized['beige'],
-          backgroundImage: 'url(https://images.unsplash.com/photo-1459233313842-cd392ee2c388?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=870&q=80)',
+          backgroundImage: 'url(https://images.unsplash.com/photo-1519750783826-e2420f4d687f?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1374&q=80)',
           backgroundRepeat: 'no-repeat', backgroundSize: 'cover', backgroundBlendMode: 'multiply',
         }}
       >
@@ -70,7 +64,7 @@ export default function PaginaInicial() {
               sm: 'row',
             },
             width: '100%', maxWidth: '700px',
-            borderRadius: '5px', padding: '32px', margin: '16px', marginRight: '550px', marginBottom: '250px',
+            borderRadius: '5px', padding: '32px', margin: '16px', //marginRight: '550px', marginBottom: '250px',
             boxShadow: '0 2px 10px 0 rgb(0 0 0 / 20%)',
             backgroundColor: appConfig.theme.colors.personalized['beige'],
           }}
@@ -78,6 +72,10 @@ export default function PaginaInicial() {
           {/* Formulário */}
           <Box
             as="form"
+            onSubmit={function (event) {
+              event.preventDefault();
+              router.push('/chat')
+            }}
             styleSheet={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               width: { xs: '100%', sm: '50%' }, textAlign: 'center', marginBottom: '32px',
@@ -89,6 +87,12 @@ export default function PaginaInicial() {
             </Text>
 
             <TextField
+              value={username}
+              onChange={function (event) {
+                const value = event.target.value;
+                setUsername(value);
+                getLocation(value);
+              }}
               fullWidth
               textFieldColors={{
                 neutral: {
@@ -136,18 +140,20 @@ export default function PaginaInicial() {
                 border: '1px solid',
                 borderColor: appConfig.theme.colors.personalized['blue-dark']
               }}
-              src={`https://github.com/${username}.png`}
+              src={`https://github.com/${showData(username, location)[0]}.png`}
             />
             <Text
               variant="body4"
               styleSheet={{
                 color: appConfig.theme.colors.personalized.beige,
                 backgroundColor: appConfig.theme.colors.personalized['blue-light'],
+                textAlign: 'center',
                 padding: '3px 30px',
                 borderRadius: '1000px'
               }}
             >
-              {username}
+              user: {username} <br/> 
+              location: {showData(username, location)[1]}
             </Text>
           </Box>
           {/* Photo Area */}
