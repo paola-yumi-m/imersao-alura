@@ -87,6 +87,7 @@ export default function PaginaInicial() {
             </Text>
 
             <TextField
+              placeholder='username'
               value={username}
               onChange={function (event) {
                 const value = event.target.value;

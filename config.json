@@ -7,9 +7,11 @@
         "pink-light": "#DC9E82",
         "pink-dark": "#C16E70",
         "beige": "#EFF0D0",
-        "beige-dark": "#F5F5E0",
+        "beige-dark": "#FAE3E3",
         "blue-dark": "#04003D",
-        "blue-light": "#675CFF"
+        "blue-light": "#675CFF",
+        "purple-light": "#F7D4BC",
+        "purple-dark": "#5747FF"
       },
       "primary": {
         "050": "#E3F9E5",
