@@ -1,25 +1,45 @@
 import { Box, Text, TextField, Image, Button } from '@skynexui/components';
 import React from 'react';
 import appConfig from '../config.json';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MzMwNDI4NywiZXhwIjoxOTU4ODgwMjg3fQ.Z4aRGlTSkWUSFQNGBPg-ycshMJcgFPWvrwICVpRpNIw';
+const SUPABASE_URL = 'https://nrosyolymrdzsvxkvrub.supabase.co';
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default function ChatPage() {
     const [message, setMessage] = React.useState('');
     const [messageList, setMessageList] = React.useState([]);
+    
+    React.useEffect(() => {
+        supabaseClient
+            .from('mensagens')
+            .select('*')
+            .order('id', { ascending: false })
+            .then(({ data }) => {
+                setMessageList(data);
+            });
+    }, [])
+
     function handleNewMessage(newMessage) {
         const message = {
-            id: messageList.length,
             from: 'paola-yumi-m',
             text: newMessage,
             isDeleted: false
-        }
-        setMessageList([
-            message,
-            ...messageList
-        ]);
+        } 
+
+        supabaseClient
+            .from('mensagens')
+            .insert([message])
+            .then(({ data }) => {
+                setMessageList([
+                    data[0],
+                    ...messageList
+                ]);
+            })
+
         setMessage('');
     }
-
-    
 
     return (
         <Box
@@ -121,11 +141,18 @@ export default function ChatPage() {
 function Header() {
     return (
         <>
-            <Box styleSheet={{ width: '100%', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} >
-                <Text variant='heading5'>
+            <Box styleSheet={{ 
+                width: '100%', 
+                marginBottom: '16px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between', 
+                }} >
+                <Text variant='heading5' styleSheet={{fontFamily: 'Century Gothic'}}>
                     Chat
                 </Text>
                 <Button
+                    styleSheet={{fontFamily: 'Century Gothic'}}
                     variant='tertiary'
                     colorVariant='neutral'
                     label='Logout'
@@ -185,7 +212,7 @@ function MessageList(props) {
                                 display: 'inline-block',
                                 marginRight: '8px'
                             }}
-                            src={`https://github.com/paola-yumi-m.png`}
+                            src={`https://github.com/${message.from}.png`}
                         />
                         <Text 
                             tag="strong"
@@ -213,7 +240,7 @@ function MessageList(props) {
                             colorVariant='neutral'
                             size='xs'
                             styleSheet={{
-                                marginLeft: '450px',
+                                alignItems: 'flex-end',
                                 hover: {
                                     backgroundColor: appConfig.theme.colors.personalized['beige'],
                                     color: appConfig.theme.colors.personalized['blue-dark']
