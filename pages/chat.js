@@ -3,16 +3,28 @@ import React from 'react';
 import appConfig from '../config.json';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import CircularProgress from '@mui/material/CircularProgress';
-import CloseIcon from '@mui/icons-material/Close';
-import { IconButton } from '@mui/material';
+import { useRouter } from 'next/router';
+import { ButtonSendSticker } from '../src/components/ButtonSendSticker'
+import { SeeProfileData } from '../src/components/SeePRofileData';
 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MzMwNDI4NywiZXhwIjoxOTU4ODgwMjg3fQ.Z4aRGlTSkWUSFQNGBPg-ycshMJcgFPWvrwICVpRpNIw';
 const SUPABASE_URL = 'https://nrosyolymrdzsvxkvrub.supabase.co';
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+function listenerLiveMessage(addMessage) {
+    return supabaseClient
+        .from('mensagens')
+        .on('INSERT', (event) => {
+            addMessage(event.new)
+    }).subscribe();
+}
+
 export default function ChatPage() {
+    const router = useRouter();
+    const currentUser = router.query.username;
     const [message, setMessage] = React.useState('');
     const [messageList, setMessageList] = React.useState([]);
+    const [profileData, setProfileData] = React.useState([]);
     
     React.useEffect(() => {
         supabaseClient
@@ -22,11 +34,20 @@ export default function ChatPage() {
             .then(({ data }) => {
                 setMessageList(data);
             });
+
+        listenerLiveMessage((newMessage) => {
+            setMessageList((actualMessageList) => {
+                return [
+                    newMessage,
+                    ...actualMessageList
+                ]
+            });
+        });
     }, [])
 
     function handleNewMessage(newMessage) {
         const message = {
-            from: 'paola-yumi-m',
+            from: currentUser,
             text: newMessage,
             isDeleted: false
         } 
@@ -34,12 +55,7 @@ export default function ChatPage() {
         supabaseClient
             .from('mensagens')
             .insert([message])
-            .then(({ data }) => {
-                setMessageList([
-                    data[0],
-                    ...messageList
-                ]);
-            })
+            .then(() => {});
 
         setMessage('');
     }
@@ -82,15 +98,11 @@ export default function ChatPage() {
                     }}
                 >
 
-                    <MessageList messages={messageList} setMessage={setMessageList}/>
-                    {/* {messageList.map((message) => {
-                        return (
-                            <li key={message.id}>
-                                {message.from}: {message.text}
-                            </li>
-                        );
-                    })} */}
-                    
+                    <MessageList 
+                        messages={messageList} 
+                        setMessage={setMessageList}
+                        profileData={profileData}
+                        setProfileData={setProfileData}/>
 
                     <Box
                         as="form"
@@ -123,6 +135,12 @@ export default function ChatPage() {
                                 marginRight: '12px',
                                 color: appConfig.theme.colors.personalized['blue-dark'],
                             }}
+                        />
+
+                        <ButtonSendSticker 
+                            onStickerClick={(sticker) => (
+                                handleNewMessage(`:sticker: ${sticker}`)
+                            )}
                         />
 
                         <Button
@@ -223,33 +241,34 @@ function MessageList(props) {
                         >
                         <Box 
                             styleSheet={{
-                                width: '758px',
-                                height: '20px',
-                                overflow: 'none',
                                 display: 'flex',
-                                flexDirection: 'row-reverse'
+                                flexDirection: 'row-reverse',
+                                alignItems: 'flex-start',
+                                marginBottom: '10px',
+                                height: '10px',
+                                overflow: 'none'
                             }}
-                        >
+                        > 
                             <Button
-                                    iconName='times'
-                                    variant='tertiary'
-                                    colorVariant='neutral'
-                                    styleSheet={{
-                                        hover: {
-                                            backgroundColor: 'transparent',
-                                            color: appConfig.theme.colors.personalized['blue-dark'],
-                                        },
-                                        focus: {
-                                            overflow: 'none',
-                                            backgroundColor: 'transparent',
-                                            color: appConfig.theme.colors.personalized['blue-dark']
-                                        },
-                                    }}
-                                    onClick={() => {
-                                        message.isDeleted = true;
-                                        deleteMessage(props.messages);
-                                    }}
-                                />
+                                iconName='times'
+                                variant='tertiary'
+                                colorVariant='neutral'
+                                styleSheet={{
+                                    hover: {
+                                        backgroundColor: 'transparent',
+                                        color: appConfig.theme.colors.personalized['blue-dark'],
+                                    },
+                                    focus: {
+                                        overflow: 'none',
+                                        backgroundColor: 'transparent',
+                                        color: appConfig.theme.colors.personalized['blue-dark']
+                                    },
+                                }}
+                                onClick={() => {
+                                    message.isDeleted = true;
+                                    deleteMessage(props.messages);
+                                }}
+                            />
                         </Box>
                         <Box
                             styleSheet={{
@@ -259,7 +278,7 @@ function MessageList(props) {
                                 marginBottom: '10px'
                             }}
                         >
-                            <Image
+                            {/* <Image     
                                 styleSheet={{
                                     width: '30px',
                                     height: '30px',
@@ -268,7 +287,16 @@ function MessageList(props) {
                                     marginRight: '8px',
                                 }}
                                 src={`https://github.com/${message.from}.png`}
-                            />
+                                onMouseOver={(event) => {
+                                    props.setProfileData({message});
+                                    ProfileInfo(props.profileData);
+
+                                }}
+
+                            />   */}
+
+                            <SeeProfileData message={message}/>
+
                             <Text 
                                 tag="strong"
                                 styleSheet={{
@@ -291,13 +319,51 @@ function MessageList(props) {
                                 {(new Date().toLocaleDateString())}
                             </Text>
                         </Box>
-                        {message.text}
-                        </Text>     
+                        {message.text.startsWith(':sticker:') 
+                            ? (
+                            <Image 
+                                src={message.text.replace(':sticker:', '')} 
+                                styleSheet={{
+                                    width: '15%'
+                                }}/>
+                            ) : (
+                            message.text
+                        )}
+                        </Text>  
                     );
                     
                 })}
             </Box>
         )    
     }
-    
+}
+
+
+function ProfileInfo(profileData) {
+    console.log('here', profileData);
+    return (
+        
+        <Box
+            styleSheet={{
+                backgroundColor: appConfig.theme.colors.personalized['pink-dark'],
+                color: 'white',
+                height: '200px',
+                margin: '16px',
+                padding: '16px',
+                width: '200px'
+            }}
+        >
+            <Button>hey</Button>
+            <Image
+                styleSheet={{
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '50%',
+                    display: 'inline-block',
+                    marginRight: '8px',
+                }}
+                src={`https://github.com/${profileData.from}.png`}
+            />
+        </Box>
+    );
 }
